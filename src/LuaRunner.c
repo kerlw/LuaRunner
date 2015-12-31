@@ -11,26 +11,29 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <lua.h>
-#include <lualib.h>
-#include <lauxlib.h>
+#include <unistd.h>
+#include<sys/wait.h>
 
-#define DEFAULT_LUA_WORKBENCH "../lua_workbench"
+#include "engine.h"
+
+#define MAIN_LUA_SCRIPT  "lua_workbench/main.lua"
 
 int main(int argc, char* argv[]) {
-	lua_State *L;
-	lua_State *LT;
-
-	L = luaL_newstate();
-	printf("%d\n*\n", LUA_TTHREAD);
-
-	lua_newthread(L);
-	printf("%d\n", lua_type(L, -1));
-
-	LT = lua_tothread(L, -1);
-	printf("%d\n", lua_type(LT, -1));
-
-	lua_close(L);
+	int childpid;
+	pid_t pid = fork();
+	if (pid < 0) {
+		printf("create lua execute process failed!\n");
+	} else if (pid == 0) {
+		lua_proc* proc = createLuaProc();
+		if (executeLuaFile(proc, MAIN_LUA_SCRIPT) != 0) {
+			perror("execute lua file failed!");
+			exit(-1);
+		}
+		cleanLuaProc(&proc);
+		return 0;
+	} else {
+		wait(&childpid);
+	}
 
 	return 0;
 }
